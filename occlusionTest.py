@@ -12,6 +12,7 @@ import leveldb
 import ROOT
 from collections import defaultdict
 
+#simple plotting macro that uses a heatmap color scheme and avoids interpolation
 def plot_heatmap(data, outfile):
     fig, ax = plt.subplots(figsize=(6,5))
     ax.set_xlabel('Plane')
@@ -27,6 +28,7 @@ def plot_heatmap(data, outfile):
     
 
 if __name__ == "__main__":
+    #take network and data information from the command line
     parser = argparse.ArgumentParser()
     parser.add_argument('--proto', type=str, required=True)
     parser.add_argument('--model', type=str, required=True)
@@ -37,7 +39,8 @@ if __name__ == "__main__":
     correct = 0
     matrix = defaultdict(int) # (real,pred) -> int
     labels_set = set()
-
+    
+    #setup caffe network, set leveldb address
     net = caffe.Net(args.proto, args.model, caffe.TEST)
     caffe.set_mode_gpu()
     db = leveldb.LevelDB(args.leveldb)
@@ -47,10 +50,12 @@ if __name__ == "__main__":
 
     cutcount=0
     
+    #loop over events, making occlusions plots for each event
     for key, value in db.RangeIter():
         if count > 1000:
             break
-    
+
+        #find the true label and predict label confidences for the nominal case
         datum = caffe.proto.caffe_pb2.Datum()
         datum.ParseFromString(value)
         label = int(datum.label)
@@ -61,22 +66,13 @@ if __name__ == "__main__":
         out = net.forward_all(data=np.asarray([image]))
         plabel = int(out['prob'][0].argmax(axis=0))
 
-        # if plabel == 8 or plabel == 9 or plabel == 10 or plabel == 11:
-        #     print 'True Label:'
-        #     print label
-        #     print 'CVN Label:'
-        #     print plabel
-        #     print 'Count:'
-        #     print count
-
         event_image= np.asarray([image])
         
+        #for events with enough activity to be interesting, produce occlusion plots
         if (np.count_nonzero(np.asarray([image])) > 40) & (count == 1001):
             cutcount=cutcount+1
         
-
-
-            ################################################
+            #create arrays to store occlusion maps, and predicted class probabilities to compare against
             bs, col, s0, s1 = event_image.shape
             square_length=2
             num_classes=15
@@ -102,14 +98,13 @@ if __name__ == "__main__":
             probs_major_y = np.zeros((num_classes_major, s0, s1))
 
             
-            #print event_image.shape
-            # generate occluded images
+            #Loop through the X and Y dimensions of the input image to generate pixel maps
             for i in range(s0):
-                # batch s1 occluded images for faster prediction
                 for j in range(s1):
                     x_occluded[i,j] = event_image
                     x_occluded_x[i,j] = event_image
                     x_occluded_y[i,j] = event_image
+                    #occlude the region around the centre pixel
                     for k in range(-square_length,square_length):
                         for l in range(-square_length,square_length):
                             if ((i+l) < 0) or ((i+l) > (s0-1)):
@@ -129,24 +124,27 @@ if __name__ == "__main__":
                     out_occluded_y = net.forward_all(data=np.asarray([x_occluded_y[i,j]]))
                     plabel_occluded = int(out_occluded['prob'][0].argmax(axis=0))
 
+                    #For occlusion at this point, store maps of PID response. 
+                    #Store for seperately occluding the X and Y detector views, and for occluding them both in parralel
+                    #store for both each individual ID, and for their sums which match broader catergories we find physically meaningful
+                    
                     for q in range(num_classes):
                         probs[q,i,j]=out_occluded['prob'][0][q]
+                        probs_x[q,i,j]=out_occluded_x['prob'][0][q]
+                        probs_y[q,i,j]=out_occluded_y['prob'][0][q]
+
                     probs_major[0,i,j]=out_occluded['prob'][0][0]+out_occluded['prob'][0][1]+out_occluded['prob'][0][2]+out_occluded['prob'][0][3]
                     probs_major[1,i,j]=out_occluded['prob'][0][4]+out_occluded['prob'][0][5]+out_occluded['prob'][0][6]+out_occluded['prob'][0][7]
                     probs_major[2,i,j]=out_occluded['prob'][0][8]+out_occluded['prob'][0][9]+out_occluded['prob'][0][10]+out_occluded['prob'][0][11]
                     probs_major[3,i,j]=out_occluded['prob'][0][12]+out_occluded['prob'][0][13]
                     probs_major[4,i,j]=out_occluded['prob'][0][14]
 
-                    for q in range(num_classes):
-                        probs_x[q,i,j]=out_occluded_x['prob'][0][q]
                     probs_major_x[0,i,j]=out_occluded_x['prob'][0][0]+out_occluded_x['prob'][0][1]+out_occluded_x['prob'][0][2]+out_occluded_x['prob'][0][3]
                     probs_major_x[1,i,j]=out_occluded_x['prob'][0][4]+out_occluded_x['prob'][0][5]+out_occluded_x['prob'][0][6]+out_occluded_x['prob'][0][7]
                     probs_major_x[2,i,j]=out_occluded_x['prob'][0][8]+out_occluded_x['prob'][0][9]+out_occluded_x['prob'][0][10]+out_occluded_x['prob'][0][11]
                     probs_major_x[3,i,j]=out_occluded_x['prob'][0][12]+out_occluded_x['prob'][0][13]
                     probs_major_x[4,i,j]=out_occluded_x['prob'][0][14]
 
-                    for q in range(num_classes):
-                        probs_y[q,i,j]=out_occluded_y['prob'][0][q]
                     probs_major_y[0,i,j]=out_occluded_y['prob'][0][0]+out_occluded_y['prob'][0][1]+out_occluded_y['prob'][0][2]+out_occluded_y['prob'][0][3]
                     probs_major_y[1,i,j]=out_occluded_y['prob'][0][4]+out_occluded_y['prob'][0][5]+out_occluded_y['prob'][0][6]+out_occluded_y['prob'][0][7]
                     probs_major_y[2,i,j]=out_occluded_y['prob'][0][8]+out_occluded_y['prob'][0][9]+out_occluded_y['prob'][0][10]+out_occluded_y['prob'][0][11]
@@ -154,31 +152,19 @@ if __name__ == "__main__":
                     probs_major_y[4,i,j]=out_occluded_y['prob'][0][14]
 
                     
+            #plot all minor class maps
             for q in range(num_classes): 
-                print probs[q].shape
                 plot_heatmap(probs[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput'+str(q)+'.pdf')
-                
-            for q in range(num_classes_major): 
-                print probs_major[q].shape
-                plot_heatmap(probs_major[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput_major'+str(q)+'.pdf')
-
-            for q in range(num_classes): 
-                print probs_x[q].shape
                 plot_heatmap(probs_x[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput'+str(q)+'_x.pdf')
-                
-            for q in range(num_classes_major): 
-                print probs_major_x[q].shape
-                plot_heatmap(probs_major_x[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput_major'+str(q)+'_x.pdf')
-
-            for q in range(num_classes): 
-                print probs_y[q].shape
                 plot_heatmap(probs_y[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput'+str(q)+'_y.pdf')
-                
+            
+            #plot all major class plots
             for q in range(num_classes_major): 
-                print probs_major_y[q].shape
+                plot_heatmap(probs_major[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput_major'+str(q)+'.pdf')
+                plot_heatmap(probs_major_x[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput_major'+str(q)+'_x.pdf')
                 plot_heatmap(probs_major_y[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput_major'+str(q)+'_y.pdf')
-
                 
+            #finally plot the original input image
             imageswap=np.swapaxes(event_image.reshape(np.delete(event_image.shape,0)),0,2)
             x,y=np.dsplit(imageswap,2)
             x=x.swapaxes(0,1)
