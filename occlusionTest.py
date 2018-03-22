@@ -11,21 +11,7 @@ import argparse
 import leveldb
 import ROOT
 from collections import defaultdict
-
-#simple plotting macro that uses a heatmap color scheme and avoids interpolation
-def plot_heatmap(data, outfile):
-    fig, ax = plt.subplots(figsize=(6,5))
-    ax.set_xlabel('Plane')
-    ax.set_ylabel('Cell')
-
-    imgplot = plt.imshow(np.rot90(data), cmap='gist_heat_r', interpolation='none', extent=[0,100,0,80])
-
-    ax.imshow(np.rot90(data), cmap='gist_heat_r', interpolation='none', extent=[0,100,0,80])
-    ax.imshow(np.rot90(data), cmap='gist_heat_r', interpolation='none', extent=[0,100,0,80])
-    plt.colorbar()
-
-    plt.savefig(outfile,dpi = 1000)
-    
+import plotFunctions
 
 if __name__ == "__main__":
     #take network and data information from the command line
