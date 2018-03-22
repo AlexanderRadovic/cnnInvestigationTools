@@ -2,7 +2,6 @@
 
 import sys
 import caffe
-#import matplotlib as plt
 import matplotlib.pyplot as plt
 import numpy as np
 import lmdb
@@ -14,7 +13,7 @@ from sklearn.decomposition import TruncatedSVD
 from collections import defaultdict
 
 if __name__ == "__main__":
-
+    #command line argument for input numpy file, and whether or not to draw the overlaid example images
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', type=str, required=True)
     parser.add_argument('--embedd', type=str, required=True)
@@ -24,6 +23,8 @@ if __name__ == "__main__":
     npy_data=np.load('data'+args.input+'.npy')
     npy_images=np.load('images'+args.input+'.npy')
 
+    #decide on size of sample to use in the TSNE, create feature array and label arrays
+    #assumes the data is formatted by network outputs, followed by the final prediction, and ending with the true label
     ntrain=14000
     features=npy_data[:ntrain,:-2]
     features_svd=TruncatedSVD(n_components=50,random_state=0).fit_transform(features)
@@ -34,15 +35,17 @@ if __name__ == "__main__":
     tlabel=npy_data[:ntrain,-1]
     print tlabel.shape
 
-    features_TSNE=TSNE(learning_rate=100,init='pca',perplexity=50,n_iter_without_progress=100,verbose=2).fit_transform(features)#_svd)
 
+    #build a tsne map, starting from a pca intialisation proved essential for our sample
+    features_TSNE=TSNE(learning_rate=100,init='pca',perplexity=50,n_iter_without_progress=100,verbose=2).fit_transform(features)#_svd)
 
     fig = plt.figure(figsize=(50, 50))
     ax = plt.axes(frameon=False)
     plt.setp(ax, xticks=(), yticks=())
     plt.subplots_adjust(left=0.0, bottom=0.0, right=1.0, top=0.9, wspace=0.0, hspace=0.0)    
     scat=plt.scatter(features_TSNE[:,0],features_TSNE[:,1],c=tlabel,cmap=plt.get_cmap("jet",14),vmin=0,vmax=14)
-    
+
+    #code to plot a random sampling of events over our tsne distribution
     if args.embedd == 'true':
 
         from matplotlib import offsetbox
@@ -52,6 +55,8 @@ if __name__ == "__main__":
         min_dist = 4.5
 
         for i in indices[:ntrain]:
+            #try to plot events which are distant in the feature space compared to those than have come before,
+            #skip events which are too close, play with min_dist to make the overlay more or less crowded
             dist = np.sum((features_TSNE[i] - shown_images) ** 2, 1)
             if np.min(dist) < min_dist:
                 continue
@@ -65,9 +70,10 @@ if __name__ == "__main__":
             x=np.rot90(x.squeeze())
             y=np.rot90(y.squeeze())
 
-            print x.shape
-            print y.shape
+            #append the image we are about to plot so we can make sure the next one is disimiliar 
             shown_images = np.r_[shown_images, [features_TSNE[i]]]
+
+            #draw the more active of the x and y views
             if np.count_nonzero(x) > np.count_nonzero(y):
                 imagebox = offsetbox.AnnotationBbox(offsetbox.OffsetImage(x,cmap='gist_heat_r', interpolation='none'), features_TSNE[i])
             else:
@@ -76,7 +82,6 @@ if __name__ == "__main__":
             
             ax.add_artist(imagebox)
 
-    #cbax=fig.add_axes([0.95,0.1,0.02,0.8])
     cb = plt.colorbar(scat,ticks=[0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5], shrink=0.95)
     cb.set_ticklabels([r'$\nu_{\mu} $ $CC$ $ QE$',
                        r'$\nu_{\mu} $ $CC$ $ RES$',
@@ -94,27 +99,4 @@ if __name__ == "__main__":
                        r'$\nu_{x} $ $NC$'])
 
     plt.show()
-    plt.savefig('test.pdf',dpi = 1000)
-    ##########################################################################################
-    #add labels
-
-    # data=npy_images[0,:]
-    # print data.shape
-    # dataswap=np.swapaxes(data.reshape(np.delete(data.shape,0)),0,2)
-    # print dataswap.shape
-    # x,y=np.dsplit(dataswap,2)
-    # x=x.swapaxes(0,1)
-    # y=y.swapaxes(0,1)
-                     
-    # fig, ax = plt.subplots(figsize=(6,5))
-    # ax.set_xlabel('Plane')
-    # ax.set_ylabel('Cell')
-    
-    # ax.imshow(np.rot90(x.squeeze()), cmap='gist_heat_r', interpolation='none', extent=[0,100,0,80])
-    # ax.imshow(np.rot90(x.squeeze()), cmap='gist_heat_r', interpolation='none', extent=[0,100,0,80])
-    # print 'view_truetype'+str(tlabel[0])+'_caltype'+str(plabel[0])+'_event_x.pdf'
-    # plt.savefig('view_truetype'+str(tlabel[0])+'_caltype'+str(plabel[0])+'_event_x.pdf',dpi = 1000)
-    
-    # ax.imshow(np.rot90(y.squeeze()), cmap='gist_heat_r', interpolation='none', extent=[0,100,0,80])
-    
-    # plt.savefig('view_truetype'+str(tlabel[0])+'_caltype'+str(plabel[0])+'_event_y.pdf',dpi = 1000)
+    plt.savefig('tsneShowCase.pdf',dpi = 1000)
