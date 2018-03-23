@@ -37,8 +37,8 @@ if __name__ == "__main__":
     #compare to pca to get a sense of how much tsne is adding
     features_PCA=PCA().fit_transform(features)
 
-    plot_tsne_comparison(features_PCA, features_TSNE, plabel, plabel, 'PCA, Reco Labels', 'TSNE, Reco Labels', 'pcaVstsne_recoL.png')
-    plot_tsne_comparison(features_PCA, features_TSNE, plabel, tlabel, 'TSNE, Reco Labels', 'TSNE, True Labels', 'recoTsneVsTruetsne.png')
+    plotFunctions.plot_tsne_comparison(features_PCA, features_TSNE, plabel, plabel, 'PCA, Reco Labels', 'TSNE, Reco Labels', 'pcaVstsne_recoL.png')
+    plotFunctions.plot_tsne_comparison(features_PCA, features_TSNE, plabel, tlabel, 'TSNE, Reco Labels', 'TSNE, True Labels', 'recoTsneVsTruetsne.png')
 
 
     

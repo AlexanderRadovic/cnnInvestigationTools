@@ -140,15 +140,15 @@ if __name__ == "__main__":
                     
             #plot all minor class maps
             for q in range(num_classes): 
-                plot_heatmap(probs[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput'+str(q)+'.pdf')
-                plot_heatmap(probs_x[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput'+str(q)+'_x.pdf')
-                plot_heatmap(probs_y[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput'+str(q)+'_y.pdf')
+                plotFunctions.plot_heatmap(probs[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput'+str(q)+'.pdf')
+                plotFunctions.plot_heatmap(probs_x[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput'+str(q)+'_x.pdf')
+                plotFunctions.plot_heatmap(probs_y[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput'+str(q)+'_y.pdf')
             
             #plot all major class plots
             for q in range(num_classes_major): 
-                plot_heatmap(probs_major[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput_major'+str(q)+'.pdf')
-                plot_heatmap(probs_major_x[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput_major'+str(q)+'_x.pdf')
-                plot_heatmap(probs_major_y[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput_major'+str(q)+'_y.pdf')
+                plotFunctions.plot_heatmap(probs_major[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput_major'+str(q)+'.pdf')
+                plotFunctions.plot_heatmap(probs_major_x[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput_major'+str(q)+'_x.pdf')
+                plotFunctions.plot_heatmap(probs_major_y[q],'occtest_truetype'+str(label)+'_caltype'+str(plabel)+'_event'+str(count)+'_pidoutput_major'+str(q)+'_y.pdf')
                 
             #finally plot the original input image
             imageswap=np.swapaxes(event_image.reshape(np.delete(event_image.shape,0)),0,2)
